@@ -12,7 +12,7 @@ from org.telegram.messenger import MessageObject, LocaleController, R, Applicati
 
 
 __name__ = "Own Messages Deleter"
-__description__ = "Удаляет все собственные сообщения в чате/группе.\n\nDeletes all your own message in chat/group."
+__description__ = "Deletes all your own messages in chat/group."
 __icon__ = "Miku_u/11"
 __version__ = "1.0.0"
 __id__ = "msgsDeleter"
@@ -45,9 +45,9 @@ class OwnMessagesDeleter(BasePlugin):
                 fragment = client_utils.get_last_fragment()
                 ctx = fragment.getContext() if fragment else ApplicationLoader.applicationContext
                 builder = AlertDialogBuilder(ctx, AlertDialogBuilder.ALERT_TYPE_MESSAGE)
-                builder.set_title("Удалить сообщения?")
-                builder.set_message("Удалить абсолютно все свои сообщения? Это действие невозможно отменить")
-                builder.set_positive_button("Да", lambda dialog, which : self.delete_user_history_with_search(fragment, context.get("dialog_id"), 0, 0, client_utils.get_connections_manager().getCurrentTime(), None))
+                builder.set_title("Delete messages?")
+                builder.set_message("Delete absolutely all your own messages? This action cannot be undone.")
+                builder.set_positive_button("Yes", lambda dialog, which : self.delete_user_history_with_search(fragment, context.get("dialog_id"), 0, 0, client_utils.get_connections_manager().getCurrentTime(), None))
 
                 ayugram = False
                 try:
@@ -57,7 +57,7 @@ class OwnMessagesDeleter(BasePlugin):
                     ayugram = False
 
                 if (ayugram):
-                    builder.set_neutral_button("Да, не сохраняя локально", lambda dialog, which :self.delete_user_history_with_search(fragment, context.get("dialog_id"), 0, 0, client_utils.get_connections_manager().getCurrentTime(), None, True))
+                    builder.set_neutral_button("Yes, without saving locally", lambda dialog, which :self.delete_user_history_with_search(fragment, context.get("dialog_id"), 0, 0, client_utils.get_connections_manager().getCurrentTime(), None, True))
 
                 builder.show()
 
@@ -69,7 +69,7 @@ class OwnMessagesDeleter(BasePlugin):
 
         lang = LocaleController.getInstance().getCurrentLocale().getLanguage()
         isRussian = True if lang.startswith('ru') else False
-        textToShow = "Удал. свои соо." if isRussian else "Delete own msgs"
+        textToShow = "Delete own msgs" if not isRussian else "Delete own msgs"
         self.add_menu_item(
             MenuItemData(
                 menu_type=MenuItemType.CHAT_ACTION_MENU,
@@ -168,4 +168,3 @@ class OwnMessagesDeleter(BasePlugin):
 
         connections_manager = client_utils.get_connections_manager()
         connections_manager.sendRequest(req, client_utils.RequestCallback(on_response), 2)
-          
