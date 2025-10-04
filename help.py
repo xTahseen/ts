@@ -71,7 +71,7 @@ ROLE_PRESETS = {
     "programmer": "Ты опытный программист. Помогай с кодом, объясняй концепции программирования.",
     "writer": "Ты талантливый писатель. Помогай с текстами, редактированием и творчеством.",
     "teacher": "Ты терпеливый учитель. Объясняй сложные темы простым языком.",
-    "analyst": "Ты аналитик. Анализируй информацию и делай выводы.",
+    "analyst": "Ты аналитик. Analysisируй информацию и делай выводы.",
     "vision": "Ты ИИ-помощник с возможностями анализа изображений. Отвечай кратко и понятно. Описывай главное, что видишь на изображении. Если пользователь задает конкретный вопрос - отвечай именно на него, не описывая всё подряд.",
     "vision_detailed": "Ты ИИ-помощник с возможностями анализа изображений. Внимательно изучай предоставленные изображения и отвечай на вопросы о них подробно и точно. Описывай то, что видишь, анализируй содержимое, текст, объекты, людей, сцены и контекст.",
     "custom": ""
@@ -177,16 +177,16 @@ class TokenUsageManager:
             sessions_count = len(self.usage_data.get("sessions", []))
 
             return (
-                f"📊 **Статистика использования токенов**\n\n"
+                f"📊 **Statistics использования токенов**\n\n"
                 f"🔢 **Всего токенов:** {total:,}\n"
                 f"📅 **Сегодня:** {daily:,}\n"
                 f"📆 **В этом месяце:** {monthly:,}\n"
                 f"💬 **Сессий:** {sessions_count}\n\n"
-                f"💡 *Токены учитывают входящий и исходящий текст*"
+                f"💡 *Tokenы учитывают входящий и исходящий текст*"
             )
         except Exception as e:
             log(f"[AIAssistant] Error getting usage stats: {e}")
-            return "❌ Ошибка получения статистики"
+            return "❌ Error получения статистики"
 
 
 
@@ -221,16 +221,16 @@ class AlertManager:
 class LocalizationManager:
     strings = {
         "ru": {
-            "SETTINGS_HEADER": "Настройки AI Assistant",
+            "SETTINGS_HEADER": "Settings AI Assistant",
             "API_KEY_INPUT": "API Key",
             "API_KEY_SUBTEXT": "Получите ключ в Google AI Studio.",
             "GET_API_KEY_BUTTON": "Ссылка для получения ключа",
             "MODEL_SELECTOR": "Модель",
-            "ENABLE_SWITCH": "Включить помощника",
+            "ENABLE_SWITCH": "Enable помощника",
 
-            "ROLE_SELECTOR": "Роль по умолчанию",
-            "CUSTOM_PROMPT_INPUT": "Пользовательский промпт",
-            "CUSTOM_PROMPT_SUBTEXT": "Используется при выборе 'Пользовательская роль'",
+            "ROLE_SELECTOR": "Role по умолчанию",
+            "CUSTOM_PROMPT_INPUT": "Userский промпт",
+            "CUSTOM_PROMPT_SUBTEXT": "Используется при выборе 'Userская роль'",
             "TEMPERATURE_INPUT": "Температура",
             "TEMPERATURE_SUBTEXT": "0.0-2.0. Контролирует креативность.",
             "MAX_TOKENS_INPUT": "Максимум токенов",
@@ -239,28 +239,28 @@ class LocalizationManager:
             "USE_MARKDOWN_SUBTEXT": "Форматировать ответы с помощью markdown (только без цитаты).",
             "USE_BLOCKQUOTE_TITLE": "Использовать цитату",
             "USE_BLOCKQUOTE_SUBTEXT": "Отображать ответы в виде сворачиваемой цитаты (без markdown).",
-            "USE_PREMIUM_EMOJI_TITLE": "Премиум эмодзи",
+            "USE_PREMIUM_EMOJI_TITLE": "Premium Emoji",
             "USE_PREMIUM_EMOJI_SUBTEXT": "Заменять обычные эмодзи на анимированные премиум эмодзи в ответах ИИ.",
-            "CONTEXT_ENABLED_TITLE": "Контекст диалога",
+            "CONTEXT_ENABLED_TITLE": "Context диалога",
             "CONTEXT_ENABLED_SUBTEXT": "Запоминать предыдущие сообщения в чате.",
             "CONTEXT_LENGTH_INPUT": "Количество контекса",
             "CONTEXT_LENGTH_SUBTEXT": "Сколько последних сообщений учитывать (1-20).",
-            "CLEAR_ALL_CONTEXT_TITLE": "Очистить весь контекст",
+            "CLEAR_ALL_CONTEXT_TITLE": "Clear весь контекст",
             "CLEAR_ALL_CONTEXT_SUBTEXT": "Удалить историю диалогов во всех чатах.",
-            "CONTEXT_CLEARED": "🧹 Контекст всех чатов очищен!",
+            "CONTEXT_CLEARED": "🧹 Context всех чатов очищен!",
             "API_KEY_MISSING": "❌ API ключ для Gemini не найден. Укажите его в настройках плагина.",
             "PROCESSING_MESSAGE": "🤖 Обрабатываю запрос...",
-            "API_ERROR": "⚠️ Ошибка API Gemini: {error}",
+            "API_ERROR": "⚠️ Error API Gemini: {error}",
             "UNEXPECTED_ERROR": "❗ Произошла неожиданная ошибка: {error}",
             "USAGE_INFO_TITLE": "Как использовать",
             "USAGE_INFO_TEXT": (
                 "🤖 **AI Assistant** - ваш умный помощник на базе Google Gemini\n\n"
                 "🎯 **Быстрый старт:**\n"
-                "• Команда: `.ai Привет!` или включите режим без команд\n"
+                "• Command: `.ai Hello!` или включите режим без команд\n"
                 "• Настройте свою команду: `.gpt`, `.помощник` и т.д.\n\n"
-                "🎭 **Роли:** Помощник • Универсальный • Креативный • Переводчик • Программист • Писатель • Учитель • Аналитик\n\n"
+                "🎭 **Роли:** Assistant • Universal • Creative • Translator • Programmer • Writer • Teacher • Analyst\n\n"
                 "🖼️ **Специальные команды:**\n"
-                "• Анализ изображений: `.img вопрос` (только при ответе на изображение)\n"
+                "• Analysis изображений: `.img вопрос` (только при ответе на изображение)\n"
                 "• Счетчик токенов: `.tokens`\n"
                 "• Настройка стиля анализа: краткий (по умолчанию) или подробный\n\n"
                 "⚡ **Быстрые настройки:** Долгое нажатие на сообщение → меню AI\n\n"
@@ -269,17 +269,17 @@ class LocalizationManager:
             "ALERT_CLOSE_BUTTON": "Закрыть",
             "APPEARANCE_HEADER": "Внешний вид",
             "GENERATION_HEADER": "Параметры генерации",
-            "CONTEXT_HEADER": "Контекст диалога",
+            "CONTEXT_HEADER": "Context диалога",
             "ROLES_HEADER": "Роли и промпты",
-            "COMMAND_SETTINGS_HEADER": "Настройки команд",
-            "NO_COMMAND_MODE_TITLE": "Режим без команд",
+            "COMMAND_SETTINGS_HEADER": "Settings команд",
+            "NO_COMMAND_MODE_TITLE": "Mode без команд",
             "NO_COMMAND_MODE_SUBTEXT": "Обрабатывать все сообщения без команды (исключая системные)",
-            "CUSTOM_COMMAND_INPUT": "Пользовательская команда",
+            "CUSTOM_COMMAND_INPUT": "Userская команда",
             "CUSTOM_COMMAND_SUBTEXT": "Замените .ai на свою команду (например: .gpt, .ask)",
             "ZWYLIB_HEADER": "ZwyLib интеграция",
-            "AUTOUPDATE_TITLE": "Автообновление",
+            "AUTOUPDATE_TITLE": "Auto-update",
             "AUTOUPDATE_SUBTEXT": "Автоматически обновлять плагин через ZwyLib",
-            "ZWYLIB_CACHE_TITLE": "Кэширование ZwyLib",
+            "ZWYLIB_CACHE_TITLE": "Cacheирование ZwyLib",
             "ZWYLIB_CACHE_SUBTEXT": "Использовать JsonCacheFile для сохранения контекстов",
             "ZWYLIB_STATUS_TITLE": "Статус ZwyLib",
             "ZWYLIB_AVAILABLE": "✅ ZwyLib доступна",
@@ -562,28 +562,28 @@ class AIAssistantPlugin(BasePlugin):
         try:
             if enabled:
                 self._setup_autoupdate()
-                run_on_ui_thread(lambda: BulletinHelper.show_success("✅ Автообновление включено"))
+                run_on_ui_thread(lambda: BulletinHelper.show_success("✅ Auto-update enabledо"))
             else:
                 self._remove_autoupdate()
-                run_on_ui_thread(lambda: BulletinHelper.show_success("❌ Автообновление отключено"))
+                run_on_ui_thread(lambda: BulletinHelper.show_success("❌ Auto-update отключено"))
         except Exception as e:
             log(f"[AIAssistant] Error toggling autoupdate: {e}")
-            run_on_ui_thread(lambda: BulletinHelper.show_error(f"Ошибка переключения автообновления: {e}"))
+            run_on_ui_thread(lambda: BulletinHelper.show_error(f"Error переключения автообновления: {e}"))
 
     def _handle_cache_toggle(self, enabled: bool):
         try:
             if enabled and is_zwylib_present():
                 self.context_cache_manager = ContextCacheManager(self)
-                run_on_ui_thread(lambda: BulletinHelper.show_success("✅ Кэширование ZwyLib включено"))
+                run_on_ui_thread(lambda: BulletinHelper.show_success("✅ Cacheирование ZwyLib enabledо"))
                 log("[AIAssistant] ZwyLib caching enabled")
             else:
                 if self.context_cache_manager:
                     self.context_cache_manager.cache_file = None
-                run_on_ui_thread(lambda: BulletinHelper.show_success("❌ Кэширование ZwyLib отключено"))
+                run_on_ui_thread(lambda: BulletinHelper.show_success("❌ Cacheирование ZwyLib отключено"))
                 log("[AIAssistant] ZwyLib caching disabled")
         except Exception as e:
             log(f"[AIAssistant] Error toggling cache: {e}")
-            run_on_ui_thread(lambda: BulletinHelper.show_error(f"Ошибка переключения кэша: {e}"))
+            run_on_ui_thread(lambda: BulletinHelper.show_error(f"Error переключения кэша: {e}"))
 
     def _add_menu_items(self):
         try:
@@ -611,7 +611,7 @@ class AIAssistantPlugin(BasePlugin):
             self.add_menu_item(
                 MenuItemData(
                     menu_type=MenuItemType.MESSAGE_CONTEXT_MENU,
-                    text="Очистить контекст AI",
+                    text="Clear контекст AI",
                     on_click=self._handle_quick_context_clear,
                     icon="msg_clear_input",
                     item_id="ai_quick_context_clear"
@@ -646,7 +646,7 @@ class AIAssistantPlugin(BasePlugin):
 
     def create_settings(self) -> List[Any]:
         try:
-            role_names_ru = ["Помощник", "Универсальный", "Креативный", "Переводчик", "Программист", "Писатель", "Учитель", "Аналитик", "Пользовательская роль"]
+            role_names_ru = ["Assistant", "Universal", "Creative", "Translator", "Programmer", "Writer", "Teacher", "Analyst", "Userская роль"]
             role_names_en = ["Assistant", "Universal", "Creative", "Translator", "Programmer", "Writer", "Teacher", "Analyst", "Custom Role"]
             role_names = role_names_ru if locali.language == "ru" else role_names_en
 
@@ -812,15 +812,15 @@ class AIAssistantPlugin(BasePlugin):
                 Header(text="Расширенные возможности"),
                 Switch(
                     key="enable_vision",
-                    text="Анализ изображений",
-                    subtext="Включить анализ изображений только через команду .img",
+                    text="Analysis изображений",
+                    subtext="Enable анализ изображений только через команду .img",
                     icon="files_gallery",
                     default=True
                 ),
                 Selector(
                     key="vision_style",
                     text="Стиль анализа",
-                    items=["Краткий и понятный", "Подробный анализ"],
+                    items=["Brief and Clear", "Detailed Analysis"],
                     default=0,
                     icon="msg_photo_settings"
                 ),
@@ -829,8 +829,8 @@ class AIAssistantPlugin(BasePlugin):
                 Header(text="Аудио расшифровка"),
                 Switch(
                     key="enable_audio",
-                    text="Включить расшифровку аудио",
-                    subtext="Расшифровка голосовых сообщений и аудио через команду .audio",
+                    text="Enable расшифровку аудио",
+                    subtext="Transcription голосовых сообщений и аудио через команду .audio",
                     icon="msg_allowspeak_solar",
                     default=True
                 ),
@@ -844,7 +844,7 @@ class AIAssistantPlugin(BasePlugin):
                     default=True
                 ),
                 Text(
-                    text="Статистика токенов",
+                    text="Statistics токенов",
                     icon="msg_stats",
                     accent=True,
                     on_click=self._handle_show_token_stats
@@ -908,27 +908,27 @@ class AIAssistantPlugin(BasePlugin):
             sessions_count = len(self.token_usage_manager.usage_data.get("sessions", []))
 
             stats_text = (
-                f"📊 **Статистика использования токенов**\n\n"
+                f"📊 **Statistics использования токенов**\n\n"
                 f"🔢 **Всего токенов:** {total:,}\n"
                 f"📅 **Сегодня:** {daily:,}\n"
                 f"📆 **В этом месяце:** {monthly:,}\n"
                 f"💬 **Сессий:** {sessions_count}\n\n"
-                f"💡 *Токены учитывают входящий и исходящий текст*"
+                f"💡 *Tokenы учитывают входящий и исходящий текст*"
             )
 
             return stats_text
         except Exception as e:
             log(f"[AIAssistant] Error getting formatted token stats: {e}")
-            return "❌ Ошибка получения статистики"
+            return "❌ Error получения статистики"
 
     def _handle_show_token_stats(self, view):
         try:
             stats_text = self._get_formatted_token_stats()
             parsed_stats = parse_markdown(stats_text)
-            self.alert_manager.show_info_alert("Статистика токенов", parsed_stats.text, "Закрыть")
+            self.alert_manager.show_info_alert("Statistics токенов", parsed_stats.text, "Закрыть")
         except Exception as e:
             log(f"[AIAssistant] Error showing token stats: {e}")
-            run_on_ui_thread(lambda: BulletinHelper.show_error("Ошибка получения статистики"))
+            run_on_ui_thread(lambda: BulletinHelper.show_error("Error получения статистики"))
 
     def _handle_clear_all_context_click(self, view):
         self._clear_all_contexts()
@@ -938,10 +938,10 @@ class AIAssistantPlugin(BasePlugin):
         try:
             length = int(new_value)
             if length < 1 or length > 20:
-                run_on_ui_thread(lambda: BulletinHelper.show_error("Количество сообщений должно быть от 1 до 20"))
+                run_on_ui_thread(lambda: BulletinHelper.show_error("The number of messages must be от 1 до 20"))
                 return
         except (ValueError, TypeError):
-            run_on_ui_thread(lambda: BulletinHelper.show_error("Введите корректное число"))
+            run_on_ui_thread(lambda: BulletinHelper.show_error("Enter a valid number"))
 
     def _handle_role_selection_change(self, new_role_index: int):
         user_selectable_roles = ["assistant", "universal", "creative", "translator", "programmer", "writer", "teacher", "analyst", "custom"]
@@ -956,7 +956,7 @@ class AIAssistantPlugin(BasePlugin):
                 log("[AIAssistant] Custom role selected but no prompt set")
                 run_on_ui_thread(lambda: BulletinHelper.show_info("🎭 Выбрана пользовательская роль. ⚠️ Укажите системный промпт ниже"))
         else:
-            role_names_ru = ["Помощник", "Универсальный", "Креативный", "Переводчик", "Программист", "Писатель", "Учитель", "Аналитик"]
+            role_names_ru = ["Assistant", "Universal", "Creative", "Translator", "Programmer", "Writer", "Teacher", "Analyst"]
             role_names_en = ["Assistant", "Universal", "Creative", "Translator", "Programmer", "Writer", "Teacher", "Analyst"]
             role_names = role_names_ru if locali.language == "ru" else role_names_en
 
@@ -978,24 +978,24 @@ class AIAssistantPlugin(BasePlugin):
         if new_value.strip():
             log(f"[AIAssistant] Custom prompt updated: {new_value[:50]}...")
             if is_custom_role_selected:
-                run_on_ui_thread(lambda: BulletinHelper.show_info("✅ Пользовательский системный промпт установлен и активен"))
+                run_on_ui_thread(lambda: BulletinHelper.show_info("✅ Userский системный промпт установлен и активен"))
             else:
-                run_on_ui_thread(lambda: BulletinHelper.show_info("💾 Промпт сохранен. Выберите 'Пользовательская роль' для активации"))
+                run_on_ui_thread(lambda: BulletinHelper.show_info("💾 Prompt сохранен. Выберите 'Userская роль' для активации"))
         else:
             log("[AIAssistant] Custom prompt cleared")
             if is_custom_role_selected:
-                run_on_ui_thread(lambda: BulletinHelper.show_info("🔄 Промпт очищен. Используется роль по умолчанию"))
+                run_on_ui_thread(lambda: BulletinHelper.show_info("🔄 Prompt очищен. Используется роль по умолчанию"))
             else:
-                run_on_ui_thread(lambda: BulletinHelper.show_info("🗑️ Промпт очищен"))
+                run_on_ui_thread(lambda: BulletinHelper.show_info("🗑️ Prompt очищен"))
 
     def _handle_no_command_mode_change(self, new_value: bool):
         try:
             if new_value:
-                run_on_ui_thread(lambda: BulletinHelper.show_info("🚀 Режим без команд включен! Теперь все сообщения будут обрабатываться ИИ"))
+                run_on_ui_thread(lambda: BulletinHelper.show_info("🚀 Mode без команд enabled! Теперь все сообщения будут обрабатываться ИИ"))
                 log("[AIAssistant] No command mode enabled")
             else:
                 custom_command = self.get_setting("custom_command", ".ai")
-                run_on_ui_thread(lambda: BulletinHelper.show_info(f"🎯 Режим команд включен! Используйте {custom_command} для обращения к ИИ"))
+                run_on_ui_thread(lambda: BulletinHelper.show_info(f"🎯 Mode команд enabled! Используйте {custom_command} для обращения к ИИ"))
                 log("[AIAssistant] Command mode enabled")
         except Exception as e:
             log(f"[AIAssistant] Error in no command mode change: {str(e)}")
@@ -1006,22 +1006,22 @@ class AIAssistantPlugin(BasePlugin):
             if not command:
                 command = ".ai"
                 self.set_setting("custom_command", command)
-                run_on_ui_thread(lambda: BulletinHelper.show_info("Команда сброшена на .ai"))
+                run_on_ui_thread(lambda: BulletinHelper.show_info("Command сброшена на .ai"))
                 return
             if not command.startswith('.'):
                 command = '.' + command
                 self.set_setting("custom_command", command)
             if not all(c.isalnum() or c in '._-' for c in command[1:]):
-                run_on_ui_thread(lambda: BulletinHelper.show_error("Команда может содержать только буквы, цифры, точки, дефисы и подчеркивания"))
+                run_on_ui_thread(lambda: BulletinHelper.show_error("Command может содержать только буквы, цифры, точки, дефисы и подчеркивания"))
                 return
             no_command_mode = self.get_setting("no_command_mode", False)
             if not no_command_mode:
-                run_on_ui_thread(lambda: BulletinHelper.show_info(f"✅ Команда изменена на: {command}"))
+                run_on_ui_thread(lambda: BulletinHelper.show_info(f"✅ Command изменена на: {command}"))
             else:
-                run_on_ui_thread(lambda: BulletinHelper.show_info(f"✅ Команда сохранена: {command} (активна при отключении режима без команд)"))
+                run_on_ui_thread(lambda: BulletinHelper.show_info(f"✅ Command сохранена: {command} (активна при отключении режима без команд)"))
         except Exception as e:
             log(f"[AIAssistant] Error in custom command change: {str(e)}")
-            run_on_ui_thread(lambda: BulletinHelper.show_error("Ошибка при изменении команды"))
+            run_on_ui_thread(lambda: BulletinHelper.show_error("Error при изменении команды"))
 
     def _handle_quick_role_change(self, context):
         try:
@@ -1030,26 +1030,26 @@ class AIAssistantPlugin(BasePlugin):
                 current_role = int(current_role)
             except (ValueError, TypeError):
                 current_role = 0
-            role_names_ru = ["Помощник", "Универсальный", "Креативный", "Переводчик", "Программист", "Писатель", "Учитель", "Аналитик", "Пользовательская роль"]
+            role_names_ru = ["Assistant", "Universal", "Creative", "Translator", "Programmer", "Writer", "Teacher", "Analyst", "Userская роль"]
             next_role = (current_role + 1) % len(role_names_ru)
             self.set_setting("role_selection", next_role)
             role_name = role_names_ru[next_role]
             if next_role == len(role_names_ru) - 1:
                 custom_prompt = self.get_setting("custom_prompt", "")
                 if custom_prompt and custom_prompt.strip():
-                    message = f"🎭 Роль изменена на: {role_name}"
+                    message = f"🎭 Role изменена на: {role_name}"
                     log(f"[AIAssistant] Quick role change to custom with prompt: {custom_prompt[:50]}...")
                 else:
-                    message = f"🎭 Роль изменена на: {role_name}\n⚠️ Укажите пользовательский промпт в настройках!"
+                    message = f"🎭 Role изменена на: {role_name}\n⚠️ Укажите пользовательский промпт в настройках!"
                     log("[AIAssistant] Quick role change to custom but no prompt set")
             else:
-                message = f"🎭 Роль изменена на: {role_name}"
+                message = f"🎭 Role изменена на: {role_name}"
                 user_selectable_roles = ["assistant", "universal", "creative", "translator", "programmer", "writer", "teacher", "analyst", "custom"]
                 log(f"[AIAssistant] Quick role change to: {user_selectable_roles[next_role]}")
             run_on_ui_thread(lambda: BulletinHelper.show_success(message))
         except Exception as e:
             log(f"[AIAssistant] Error in quick role change: {str(e)}")
-            run_on_ui_thread(lambda: BulletinHelper.show_error("Ошибка при смене роли"))
+            run_on_ui_thread(lambda: BulletinHelper.show_error("Error при смене роли"))
 
     def _handle_quick_context_toggle(self, context):
         try:
@@ -1057,25 +1057,25 @@ class AIAssistantPlugin(BasePlugin):
             new_enabled = not current_enabled
             self.set_setting("context_enabled", new_enabled)
             if new_enabled:
-                message = "🧠 Контекст диалога включен"
+                message = "🧠 Context диалога enabled"
             else:
-                message = "🧠 Контекст диалога отключен"
+                message = "🧠 Context диалога отключен"
             run_on_ui_thread(lambda: BulletinHelper.show_success(message))
         except Exception as e:
             log(f"[AIAssistant] Error in context toggle: {str(e)}")
-            run_on_ui_thread(lambda: BulletinHelper.show_error("Ошибка при переключении контекста"))
+            run_on_ui_thread(lambda: BulletinHelper.show_error("Error при переключении контекста"))
 
     def _handle_quick_context_clear(self, context):
         log("[AIAssistant] _handle_quick_context_clear function called!")
         try:
             self._clear_all_contexts()
-            message_text = "🧹 Все контексты очищены!"
+            message_text = "🧹 All contexts cleared!"
             log("[AIAssistant] All contexts cleared successfully")
             run_on_ui_thread(lambda: BulletinHelper.show_success(message_text))
         except Exception as e:
             log(f"[AIAssistant] Error in _handle_quick_context_clear: {str(e)}")
             log(f"[AIAssistant] Full traceback: {traceback.format_exc()}")
-            run_on_ui_thread(lambda: BulletinHelper.show_error(f"Ошибка: {str(e)}"))
+            run_on_ui_thread(lambda: BulletinHelper.show_error(f"Error: {str(e)}"))
 
     def _handle_quick_ai_toggle(self, context):
         try:
@@ -1083,15 +1083,15 @@ class AIAssistantPlugin(BasePlugin):
             new_enabled = not current_enabled
             self.set_setting("enabled", new_enabled)
             if new_enabled:
-                message = "🤖 AI Assistant включен"
+                message = "🤖 AI Assistant enabled"
                 log("[AIAssistant] AI Assistant enabled via quick toggle")
             else:
-                message = "🤖 AI Assistant выключен"
+                message = "🤖 AI Assistant disabled"
                 log("[AIAssistant] AI Assistant disabled via quick toggle")
             self._show_bulletin_safe("success", message)
         except Exception as e:
             log(f"[AIAssistant] Error in quick AI toggle: {str(e)}")
-            run_on_ui_thread(lambda: BulletinHelper.show_error("Ошибка при переключении AI"))
+            run_on_ui_thread(lambda: BulletinHelper.show_error("Error при переключении AI"))
 
     def _get_commands_list(self) -> List[str]:
         no_command_mode = self.get_setting("no_command_mode", False)
@@ -1147,7 +1147,7 @@ class AIAssistantPlugin(BasePlugin):
         max_msg_length = 500
         if len(message) > max_msg_length:
             message = message[:max_msg_length] + "..."
-        prefix = "Пользователь: " if is_user else "Ассистент: "
+        prefix = "User: " if is_user else "Assistant: "
         current_context.append(prefix + message)
         if len(current_context) > max_context * 2:
             current_context = current_context[-max_context * 2:]
@@ -1217,7 +1217,7 @@ class AIAssistantPlugin(BasePlugin):
                 if vision_style == 1:
                     system_additions.append("Ты анализируешь изображение. Будь максимально подробным в описании того, что видишь.")
                 else:
-                    system_additions.append("Анализируй изображение кратко и по существу. Отвечай простым языком, понятным обычному пользователю.")
+                    system_additions.append("Analysisируй изображение кратко и по существу. Отвечай простым языком, понятным обычному пользователю.")
             elif media_data.startswith("AUDIO_DATA:"):
                 system_additions.append("Ты расшифровываешь аудио. Предоставь точную текстовую расшифровку содержания аудио.")
         use_blockquote = self.get_setting("use_blockquote", False)
@@ -1240,11 +1240,11 @@ class AIAssistantPlugin(BasePlugin):
         user_parts = []
         context = self._get_chat_context(chat_id)
         if context:
-            user_parts.append("Контекст предыдущих сообщений:")
+            user_parts.append("Context предыдущих сообщений:")
             user_parts.extend(context)
             user_parts.append("")
         if replied_message:
-            user_parts.append(f"Сообщение для анализа: {replied_message}")
+            user_parts.append(f"Message для анализа: {replied_message}")
             user_parts.append("")
         if media_data:
             if media_data.startswith("IMAGE_DATA:"):
@@ -1447,11 +1447,11 @@ class AIAssistantPlugin(BasePlugin):
         self.last_processed_message = message_text
         self.last_processed_time = current_time
         system_messages = [
-            "🧹 Контекст", "🎭 Роль изменена", "🧠 Контекст диалога",
-            "🚀 Режим без команд", "🎯 Режим команд", "✅ Команда изменена",
-            "⚠️ Ошибка API", "❗ Произошла неожиданная ошибка", "❌ API ключ",
-            "🤖 AI Assistant включен", "🤖 AI Assistant выключен",
-            "🎙️ **Расшифровка голосового сообщения:**", "🎵 **Анализ музыки:**"
+            "🧹 Context", "🎭 Role изменена", "🧠 Context диалога",
+            "🚀 Mode без команд", "🎯 Mode команд", "✅ Command изменена",
+            "⚠️ Error API", "❗ Произошла неожиданная ошибка", "❌ API ключ",
+            "🤖 AI Assistant enabled", "🤖 AI Assistant disabled",
+            "🎙️ **Transcription голосового сообщения:**", "🎵 **Analysis музыки:**"
         ]
         if any(msg in message_text for msg in system_messages):
             return HookResult()
@@ -1493,20 +1493,20 @@ class AIAssistantPlugin(BasePlugin):
                 return HookResult(strategy=HookStrategy.CANCEL)
             elif command_type == "img":
                 if not (hasattr(params, 'replyToMsg') and params.replyToMsg):
-                    params.message = "❌ Команда .img работает только при ответе на сообщение с изображением"
+                    params.message = "❌ Command .img работает только при ответе на сообщение с изображением"
                     return HookResult(strategy=HookStrategy.MODIFY, params=params)
                 reply_msg = params.replyToMsg.messageOwner
                 if not (hasattr(reply_msg, 'media') and reply_msg.media):
                     params.message = "❌ В сообщении, на которое вы отвечаете, нет изображения"
                     return HookResult(strategy=HookStrategy.MODIFY, params=params)
                 if not (hasattr(reply_msg.media, 'photo') and reply_msg.media.photo):
-                    params.message = "❌ Команда .img работает только с изображениями"
+                    params.message = "❌ Command .img работает только с изображениями"
                     return HookResult(strategy=HookStrategy.MODIFY, params=params)
                 is_img_command = True
                 log("[AIAssistant] .img command detected with valid image reply")
             elif command_type == "audio":
                 if not (hasattr(params, 'replyToMsg') and params.replyToMsg):
-                    params.message = "❌ Команда .audio работает только при ответе на сообщение с аудио"
+                    params.message = "❌ Command .audio работает только при ответе на сообщение с аудио"
                     return HookResult(strategy=HookStrategy.MODIFY, params=params)
                 reply_msg = params.replyToMsg
                 if not self._is_supported_audio_message(reply_msg):
@@ -1531,7 +1531,7 @@ class AIAssistantPlugin(BasePlugin):
                 elif is_audio_command:
                     media_data = self._extract_audio_data(reply_msg)
         if not user_message and not replied_message and not media_data:
-            user_message = "Привет! Как дела?"
+            user_message = "Hello! Как дела?"
         BulletinHelper.show_info(locali.get_string("PROCESSING_MESSAGE"))
         run_on_queue(lambda: self._process_ai_request_in_background(params, user_message, replied_message, media_data, is_img_command, is_audio_command, audio_type))
         return HookResult(strategy=HookStrategy.CANCEL)
@@ -1631,7 +1631,7 @@ class AIAssistantPlugin(BasePlugin):
                         image_location = ImageLocation.getForPhoto(best_size, photo)
                         if image_location:
                             file_loader.loadFile(image_location, message, "jpg", FileLoader.PRIORITY_HIGH, FileLoader.PRELOAD_CACHE_TYPE)
-                            return "⏳ Изображение загружается, попробуйте еще раз через несколько секунд"
+                            return "⏳ Image загружается, попробуйте еще раз через несколько секунд"
                         else:
                             return "❌ Не удалось создать ImageLocation для загрузки"
             except Exception as e:
@@ -1640,7 +1640,7 @@ class AIAssistantPlugin(BasePlugin):
             return "❌ Не удалось получить данные изображения"
         except Exception as e:
             log(f"[AIAssistant] Error extracting photo data: {e}")
-            return f"❌ Ошибка обработки изображения: {str(e)}"
+            return f"❌ Error обработки изображения: {str(e)}"
 
     def _extract_document_image_data(self, document: Any) -> Optional[str]:
         try:
@@ -1655,7 +1655,7 @@ class AIAssistantPlugin(BasePlugin):
                 return "⏳ Файл загружается, попробуйте еще раз через несколько секунд"
         except Exception as e:
             log(f"[AIAssistant] Error extracting document image data: {e}")
-            return f"❌ Ошибка обработки изображения: {str(e)}"
+            return f"❌ Error обработки изображения: {str(e)}"
 
     def _convert_image_to_base64(self, file_path: str) -> Optional[str]:
         try:
@@ -1679,7 +1679,7 @@ class AIAssistantPlugin(BasePlugin):
                 return f"IMAGE_DATA:{mime_type}:{base64_data}"
         except Exception as e:
             log(f"[AIAssistant] Error converting image to base64: {e}")
-            return f"❌ Ошибка конвертации изображения: {str(e)}"
+            return f"❌ Error конвертации изображения: {str(e)}"
 
     def _get_audio_type(self, message: Any) -> str:
         try:
@@ -1723,7 +1723,7 @@ class AIAssistantPlugin(BasePlugin):
 
 Формат ответа должен быть следующим:
 
-**Анализ музыки:**
+**Analysis музыки:**
 
 **Основная информация:**
 - Жанр: [определи жанр музыки]
@@ -1748,7 +1748,7 @@ class AIAssistantPlugin(BasePlugin):
 
 Формат ответа:
 
-🎙️ **Расшифровка голосового сообщения:**
+🎙️ **Transcription голосового сообщения:**
 
 **Текст:**
 [точная расшифровка речи]
@@ -1827,7 +1827,7 @@ class AIAssistantPlugin(BasePlugin):
                     try:
                         if not file_path_obj:
                             log("[AIAssistant] file_path_obj is None, cannot download")
-                            BulletinHelper.show_error("Ошибка получения пути к файлу")
+                            BulletinHelper.show_error("Error получения пути к файлу")
                             return None
                         file_loader.loadFile(document, "music_transcription", FileLoader.PRIORITY_HIGH, 1)
                         import time
@@ -1849,7 +1849,7 @@ class AIAssistantPlugin(BasePlugin):
                         log(f"[AIAssistant] Error initiating file download: {e}")
                         import traceback
                         log(f"[AIAssistant] Traceback: {traceback.format_exc()}")
-                        BulletinHelper.show_error("Ошибка при загрузке музыкального файла")
+                        BulletinHelper.show_error("Error при загрузке музыкального файла")
                         return None
                 else:
                     BulletinHelper.show_error("Аудиофайл не найден")
@@ -1902,10 +1902,10 @@ class AIAssistantPlugin(BasePlugin):
     def _handle_audio_transcription(self, message: Any):
         try:
             if not self.get_setting("enable_audio", True):
-                BulletinHelper.show_error("Расшифровка аудио отключена в настройках")
+                BulletinHelper.show_error("Transcription аудио отключена в настройках")
                 return
             if not self._is_supported_audio_message(message):
-                BulletinHelper.show_error("Сообщение не содержит поддерживаемого аудио")
+                BulletinHelper.show_error("Message не содержит поддерживаемого аудио")
                 return
             api_key = self.get_setting("gemini_api_key", "")
             if not api_key:
@@ -1915,7 +1915,7 @@ class AIAssistantPlugin(BasePlugin):
             run_on_queue(lambda: self._process_audio_transcription_background(message))
         except Exception as e:
             log(f"[AIAssistant] Error handling audio transcription: {e}")
-            BulletinHelper.show_error(f"Ошибка расшифровки аудио: {str(e)}")
+            BulletinHelper.show_error(f"Error расшифровки аудио: {str(e)}")
 
     def _process_audio_transcription_background(self, message: Any):
         try:
@@ -1946,10 +1946,10 @@ class AIAssistantPlugin(BasePlugin):
                         if audio_type == 'music':
                             formatted_response = response_text
                         else:
-                            if response_text.startswith("🎙️ **Расшифровка"):
+                            if response_text.startswith("🎙️ **Transcription"):
                                 formatted_response = response_text
                             else:
-                                formatted_response = f"🎙️ **Расшифровка голосового сообщения:**\n\n{response_text}"
+                                formatted_response = f"🎙️ **Transcription голосового сообщения:**\n\n{response_text}"
                         reply_to_msg = None
                         if hasattr(message, 'messageOwner'):
                             reply_to_msg = message.messageOwner
@@ -1964,14 +1964,14 @@ class AIAssistantPlugin(BasePlugin):
                         BulletinHelper.show_success("Аудио успешно расшифровано!")
                     except Exception as e:
                         log(f"[AIAssistant] Error sending transcription: {e}")
-                        BulletinHelper.show_error(f"Ошибка отправки расшифровки: {str(e)}")
+                        BulletinHelper.show_error(f"Error отправки расшифровки: {str(e)}")
                 run_on_ui_thread(send_transcription)
             else:
                 error_msg = result.get("error", "Неизвестная ошибка API")
-                run_on_ui_thread(lambda: BulletinHelper.show_error(f"Ошибка API: {error_msg}"))
+                run_on_ui_thread(lambda: BulletinHelper.show_error(f"Error API: {error_msg}"))
         except Exception as e:
             log(f"[AIAssistant] Error in background audio transcription: {e}")
             import traceback
             log(f"[AIAssistant] Traceback: {traceback.format_exc()}")
-            run_on_ui_thread(lambda: BulletinHelper.show_error(f"Ошибка расшифровки: {str(e)}"))
+            run_on_ui_thread(lambda: BulletinHelper.show_error(f"Error расшифровки: {str(e)}"))
 
