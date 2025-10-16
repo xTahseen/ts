@@ -3,12 +3,13 @@ import asyncio
 from PIL import Image
 from pyrogram import Client, filters, enums
 from utils.misc import modules_help, prefix
-from utils.scripts import format_exc
+from utils.scripts import format_exc, import_library
 from utils.config import gemini_key
-import google.generativeai as genai
 
-genai.configure(api_key=gemini_key)
-MODEL_NAME = "gemini-2.0-flash"
+genai = import_library("google.genai", "google-genai")
+client = genai.Client(api_key=gemini_key)
+
+MODEL_NAME = "gemini-2.5-flash"
 COOK_GEN_CONFIG = {
     "temperature": 0.35, "top_p": 0.95, "top_k": 40, "max_output_tokens": 1024
 }
@@ -28,19 +29,27 @@ def _valid_file(reply, file_type=None):
     )
 
 async def _upload_file(file_path, file_type):
-    uploaded_file = genai.upload_file(file_path)
-    while uploaded_file.state.name == "PROCESSING":
-        await asyncio.sleep(5)
-        uploaded_file = genai.get_file(uploaded_file.name)
-    if uploaded_file.state.name == "FAILED":
-        raise ValueError(f"{file_type.capitalize()} failed to process")
-    return uploaded_file
+    uploaded = await asyncio.to_thread(client.files.upload, file=file_path)
+    for _ in range(120):
+        state = getattr(uploaded, "state", None)
+        name = getattr(uploaded, "name", None) or getattr(uploaded, "id", None)
+        if state and getattr(state, "name", "").upper() == "ACTIVE":
+            return uploaded
+        if state and getattr(state, "name", "").upper() == "FAILED":
+            raise ValueError(f"{file_type.capitalize()} failed to process")
+        if name:
+            try:
+                uploaded = await asyncio.to_thread(client.files.get, name=name)
+            except Exception:
+                pass
+        await asyncio.sleep(1)
+    raise ValueError(f"{file_type.capitalize()} upload timed out")
 
 async def prepare_input_data(reply, file_path, prompt):
     if reply.photo:
         with Image.open(file_path) as img:
             img.verify()
-            return [prompt, img]
+        return [prompt, await _upload_file(file_path, "image")]
     if reply.video or reply.video_note:
         return [prompt, await _upload_file(file_path, "video")]
     if reply.audio or reply.voice:
@@ -64,14 +73,21 @@ async def ai_process_handler(message, prompt, show_prompt=False, cook_mode=False
     file_path = await reply.download()
     if not file_path or not os.path.exists(file_path):
         return await message.edit_text("<code>Failed to process the file. Try again.</code>")
+
+    uploaded_file = None
     try:
         input_data = await prepare_input_data(reply, file_path, prompt)
-        model = genai.GenerativeModel(
-            MODEL_NAME, generation_config=COOK_GEN_CONFIG if cook_mode else None
-        )
+        if len(input_data) > 1 and hasattr(input_data[1], "name"):
+            uploaded_file = input_data[1]
+
         for _ in range(3):
             try:
-                response = model.generate_content(input_data)
+                response = await asyncio.to_thread(
+                    client.models.generate_content,
+                    model=MODEL_NAME,
+                    contents=input_data,
+                    config=COOK_GEN_CONFIG if cook_mode else None
+                )
                 break
             except Exception as e:
                 msg = str(e).lower()
@@ -86,7 +102,15 @@ async def ai_process_handler(message, prompt, show_prompt=False, cook_mode=False
                     raise
         else:
             raise e
-        result_text = (f"**Prompt:** {prompt}\n" if show_prompt else "") + f"**Answer:** {getattr(response, 'text', '') or '<code>No content generated.</code>'}"
+
+        text_out = getattr(response, "text", None)
+        if not text_out:
+            try:
+                text_out = response.candidates[0].content[0].text
+            except Exception:
+                text_out = None
+
+        result_text = (f"**Prompt:** {prompt}\n" if show_prompt else "") + f"**Answer:** {text_out or '<code>No content generated.</code>'}"
         if len(result_text) > 4000:
             for i in range(0, len(result_text), 4000):
                 await message.reply_text(result_text[i:i+4000], parse_mode=enums.ParseMode.MARKDOWN)
@@ -98,9 +122,16 @@ async def ai_process_handler(message, prompt, show_prompt=False, cook_mode=False
     except Exception as e:
         await message.edit_text(f"<code>Error:</code> {format_exc(e)}")
     finally:
+        if uploaded_file:
+            try:
+                await asyncio.to_thread(client.files.delete, name=getattr(uploaded_file, "name", getattr(uploaded_file, "id", None)))
+            except Exception:
+                pass
         if os.path.exists(file_path):
-            try: os.remove(file_path)
-            except Exception: pass
+            try:
+                os.remove(file_path)
+            except Exception:
+                pass
 
 @Client.on_message(filters.command("getai", prefix) & filters.me)
 async def getai(_, message):
@@ -154,5 +185,5 @@ modules_help["generative"] = {
     "aicook [reply to image]*": "Identify food and generate cooking instructions.",
     "aiseller [target audience] [reply to image]*": "Generate marketing descriptions for products.",
     "transcribe [custom prompt] [reply to audio/video]*": "Transcribe or summarize an audio or video file.",
-    "process [prompt] [reply to any file]*": "Process any file (image, audio, video, video note, PDF, document, code, etc).",
+    "process [prompt] [reply to any file]*": "Process any file (image, audio, video, PDF, document, code, etc).",
 }
