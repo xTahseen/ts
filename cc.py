@@ -29,7 +29,7 @@ def _valid_file(reply, file_type=None):
     )
 
 async def _upload_file(file_path, file_type):
-    uploaded = client.files.upload(file=file_path)
+    uploaded = await asyncio.to_thread(client.files.upload, file=file_path)
     for _ in range(120):
         state = getattr(uploaded, "state", None)
         name = getattr(uploaded, "name", None) or getattr(uploaded, "id", None)
@@ -39,7 +39,7 @@ async def _upload_file(file_path, file_type):
             raise ValueError(f"{file_type.capitalize()} failed to process")
         if name:
             try:
-                uploaded = client.files.get(name=name)
+                uploaded = await asyncio.to_thread(client.files.get, name=name)
             except Exception:
                 pass
         await asyncio.sleep(1)
@@ -82,7 +82,8 @@ async def ai_process_handler(message, prompt, show_prompt=False, cook_mode=False
 
         for _ in range(3):
             try:
-                response = client.models.generate_content(
+                response = await asyncio.to_thread(
+                    client.models.generate_content,
                     model=MODEL_NAME,
                     contents=input_data,
                     config=COOK_GEN_CONFIG if cook_mode else None
@@ -123,7 +124,7 @@ async def ai_process_handler(message, prompt, show_prompt=False, cook_mode=False
     finally:
         if uploaded_file:
             try:
-                client.files.delete(name=getattr(uploaded_file, "name", getattr(uploaded_file, "id", None)))
+                await asyncio.to_thread(client.files.delete, name=getattr(uploaded_file, "name", getattr(uploaded_file, "id", None)))
             except Exception:
                 pass
         if os.path.exists(file_path):
