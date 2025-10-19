@@ -19,13 +19,22 @@ async def _save_sent_message(client: Client, message: Message):
     enabled = db.get(NS, "enabled", False)
     if not enabled:
         return
+
     me = await client.get_me()
     if message.chat.id == me.id:
         return
+
     chat_id = str(message.chat.id)
+
+    # Exclude specific chats
+    excluded_chats = db.get(NS, "excluded_chats", [])
+    if chat_id in excluded_chats:
+        return
+
     msg_ids = db.get(NS, f"media:{chat_id}", [])
     msg_ids.append(message.id)
     db.set(NS, f"media:{chat_id}", msg_ids)
+
     chats = db.get(NS, "chats", [])
     if chat_id not in chats:
         chats.append(chat_id)
@@ -36,13 +45,22 @@ async def _save_sent_message(client: Client, message: Message):
 async def store_my_media(client: Client, message: Message):
     if message.chat.id == (await client.get_me()).id:
         return
+
     enabled = db.get(NS, "enabled", False)
     if not enabled:
         return
+
     chat_id = str(message.chat.id)
+
+    # Exclude specific chats
+    excluded_chats = db.get(NS, "excluded_chats", [])
+    if chat_id in excluded_chats:
+        return
+
     msg_ids = db.get(NS, f"media:{chat_id}", [])
     msg_ids.append(message.id)
     db.set(NS, f"media:{chat_id}", msg_ids)
+
     chats = db.get(NS, "chats", [])
     if chat_id not in chats:
         chats.append(chat_id)
@@ -53,22 +71,72 @@ async def store_my_media(client: Client, message: Message):
 async def handle_dm(client: Client, message: Message):
     args = message.text.split(maxsplit=1)
     if len(args) > 1:
-        arg = args[1].lower()
+        arg = args[1].lower().strip()
+
+        # Turn ON media storing
         if arg == "on":
             db.set(NS, "enabled", True)
             await message.edit("Media <b>ON</b>")
             return
+
+        # Turn OFF media storing
         elif arg == "off":
             db.set(NS, "enabled", False)
             await message.edit("Media <b>OFF</b>")
             return
+
+        # ✅ List excluded chats (check this BEFORE "exclude")
+        elif arg == "excluded":
+            excluded = [str(x) for x in db.get(NS, "excluded_chats", [])]
+            if not excluded:
+                await message.edit("No excluded chats.")
+            else:
+                text = "<b>Excluded Chats:</b>\n" + "\n".join(excluded)
+                await message.edit(text)
+            return
+
+        # Exclude a chat
+        elif arg.startswith("exclude"):
+            parts = arg.split()
+            if len(parts) == 2:
+                chat_id = str(parts[1])
+                excluded = [str(x) for x in db.get(NS, "excluded_chats", [])]
+                if chat_id not in excluded:
+                    excluded.append(chat_id)
+                    db.set(NS, "excluded_chats", excluded)
+                    await message.edit(f"Excluded chat <b>{chat_id}</b>")
+                else:
+                    await message.edit(f"Chat <b>{chat_id}</b> already excluded.")
+            else:
+                await message.edit("Usage: <b>dm exclude [chat_id]</b>")
+            return
+
+        # Unexclude a chat
+        elif arg.startswith("unexclude"):
+            parts = arg.split()
+            if len(parts) == 2:
+                chat_id = str(parts[1])
+                excluded = [str(x) for x in db.get(NS, "excluded_chats", [])]
+                if chat_id in excluded:
+                    excluded.remove(chat_id)
+                    db.set(NS, "excluded_chats", excluded)
+                    await message.edit(f"Removed chat <b>{chat_id}</b> from excluded list.")
+                else:
+                    await message.edit(f"Chat <b>{chat_id}</b> not found in excluded list.")
+            else:
+                await message.edit("Usage: <b>dm unexclude [chat_id]</b>")
+            return
+
+    # Default action - clean stored media
     chats = db.get(NS, "chats", [])
     if not chats:
         await message.edit("No media.")
         return
+
     await message.edit("Cleaning...")
     total_deleted = 0
     total_chats = 0
+
     for chat_id in list(chats):
         msg_ids = db.get(NS, f"media:{chat_id}", [])
         if not msg_ids:
@@ -85,9 +153,9 @@ async def handle_dm(client: Client, message: Message):
         if per_chat_deleted:
             total_chats += 1
             total_deleted += per_chat_deleted
+
     db.set(NS, "chats", [])
     await message.edit(f"Deleted <b>{total_deleted}</b> in <b>{total_chats}</b> chats.")
-
 
 @Client.on_message(filters.me & filters.regex(rf"^{re.escape(prefix)}s\d+(\s+v\d*)?$"))
 async def media_slot(client: Client, message: Message):
@@ -95,21 +163,26 @@ async def media_slot(client: Client, message: Message):
     slot = parts[0][len(prefix):]
     self_destruct = False
     ttl_seconds = 10
+
     if len(parts) > 1 and parts[1].startswith("v"):
         self_destruct = True
         if len(parts[1]) > 1 and parts[1][1:].isdigit():
             ttl_seconds = int(parts[1][1:])
+
     if message.reply_to_message:
         m = message.reply_to_message
         db.set(NS, slot, {"chat_id": m.chat.id, "message_id": m.id})
         await message.edit(f"Saved media in <b>{slot}</b>")
         return
+
     saved = db.get(NS, slot, None)
     if not saved:
         await message.edit(f"Empty <b>{slot}</b>")
         return
+
     chat_id = saved.get("chat_id")
     msg_id = saved.get("message_id")
+
     try:
         if self_destruct:
             original = await client.get_messages(chat_id, msg_id)
@@ -142,6 +215,7 @@ async def media_slot(client: Client, message: Message):
         await message.edit("Send failed")
         print(f"send failed for slot {slot}: {e}")
         return
+
     await _save_sent_message(client, sent_msg)
     await message.delete()
 
@@ -150,5 +224,8 @@ modules_help["dm"] = {
     "dm on": "Enable storing outgoing media.",
     "dm off": "Disable storing outgoing media.",
     "dm": "Delete all stored media globally.",
+    "dm exclude [chat_id]": "Exclude a chat from media collection.",
+    "dm unexclude [chat_id]": "Remove chat from exclusion list.",
+    "dm excluded": "List all excluded chats.",
     "s1, s2, ...": "Reply with media to save, or reuse slot. Use `s1 v` for self-destruct (10s), `s1 v20` for custom seconds.",
 }
