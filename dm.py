@@ -26,7 +26,6 @@ async def _save_sent_message(client: Client, message: Message):
 
     chat_id = str(message.chat.id)
 
-    # Exclude specific chats
     excluded_chats = db.get(NS, "excluded_chats", [])
     if chat_id in excluded_chats:
         return
@@ -52,7 +51,6 @@ async def store_my_media(client: Client, message: Message):
 
     chat_id = str(message.chat.id)
 
-    # Exclude specific chats
     excluded_chats = db.get(NS, "excluded_chats", [])
     if chat_id in excluded_chats:
         return
@@ -73,48 +71,26 @@ async def handle_dm(client: Client, message: Message):
     if len(args) > 1:
         arg = args[1].lower().strip()
 
-        # Turn ON media storing
         if arg == "on":
             db.set(NS, "enabled", True)
             await message.edit("Media <b>ON</b>")
             return
 
-        # Turn OFF media storing
         elif arg == "off":
             db.set(NS, "enabled", False)
             await message.edit("Media <b>OFF</b>")
             return
 
-        # ✅ List excluded chats (check this BEFORE "exclude")
-        elif arg == "excluded":
-            excluded = [str(x) for x in db.get(NS, "excluded_chats", [])]
-            if not excluded:
-                await message.edit("No excluded chats.")
-            else:
-                text = "<b>Excluded Chats:</b>\n" + "\n".join(excluded)
-                await message.edit(text)
-            return
-
-        # Exclude a chat
         elif arg.startswith("exclude"):
             parts = arg.split()
-            if len(parts) == 2:
-                chat_id = str(parts[1])
+            if len(parts) == 1:
                 excluded = [str(x) for x in db.get(NS, "excluded_chats", [])]
-                if chat_id not in excluded:
-                    excluded.append(chat_id)
-                    db.set(NS, "excluded_chats", excluded)
-                    await message.edit(f"Excluded chat <b>{chat_id}</b>")
+                if not excluded:
+                    await message.edit("No excluded chats.")
                 else:
-                    await message.edit(f"Chat <b>{chat_id}</b> already excluded.")
-            else:
-                await message.edit("Usage: <b>dm exclude [chat_id]</b>")
-            return
-
-        # Unexclude a chat
-        elif arg.startswith("unexclude"):
-            parts = arg.split()
-            if len(parts) == 2:
+                    text = "<b>Excluded Chats:</b>\n" + "\n".join(excluded)
+                    await message.edit(text)
+            elif len(parts) == 2:
                 chat_id = str(parts[1])
                 excluded = [str(x) for x in db.get(NS, "excluded_chats", [])]
                 if chat_id in excluded:
@@ -122,12 +98,13 @@ async def handle_dm(client: Client, message: Message):
                     db.set(NS, "excluded_chats", excluded)
                     await message.edit(f"Removed chat <b>{chat_id}</b> from excluded list.")
                 else:
-                    await message.edit(f"Chat <b>{chat_id}</b> not found in excluded list.")
+                    excluded.append(chat_id)
+                    db.set(NS, "excluded_chats", excluded)
+                    await message.edit(f"Excluded chat <b>{chat_id}</b>")
             else:
-                await message.edit("Usage: <b>dm unexclude [chat_id]</b>")
+                await message.edit("Usage: <b>dm exclude [chat_id]</b>")
             return
 
-    # Default action - clean stored media
     chats = db.get(NS, "chats", [])
     if not chats:
         await message.edit("No media.")
@@ -136,8 +113,12 @@ async def handle_dm(client: Client, message: Message):
     await message.edit("Cleaning...")
     total_deleted = 0
     total_chats = 0
+    excluded_chats = db.get(NS, "excluded_chats", [])
 
     for chat_id in list(chats):
+        if chat_id in excluded_chats:
+            db.remove(NS, f"media:{chat_id}")
+            continue
         msg_ids = db.get(NS, f"media:{chat_id}", [])
         if not msg_ids:
             db.remove(NS, f"media:{chat_id}")
@@ -156,6 +137,7 @@ async def handle_dm(client: Client, message: Message):
 
     db.set(NS, "chats", [])
     await message.edit(f"Deleted <b>{total_deleted}</b> in <b>{total_chats}</b> chats.")
+
 
 @Client.on_message(filters.me & filters.regex(rf"^{re.escape(prefix)}s\d+(\s+v\d*)?$"))
 async def media_slot(client: Client, message: Message):
@@ -224,8 +206,7 @@ modules_help["dm"] = {
     "dm on": "Enable storing outgoing media.",
     "dm off": "Disable storing outgoing media.",
     "dm": "Delete all stored media globally.",
-    "dm exclude [chat_id]": "Exclude a chat from media collection.",
-    "dm unexclude [chat_id]": "Remove chat from exclusion list.",
-    "dm excluded": "List all excluded chats.",
+    "dm exclude [chat_id]": "Show or toggle chat exclusion (no separate 'remove' command).",
+    "dm unexclude [chat_id]": "Deprecated - use 'dm exclude <chat_id>' to toggle.",
     "s1, s2, ...": "Reply with media to save, or reuse slot. Use `s1 v` for self-destruct (10s), `s1 v20` for custom seconds.",
 }
