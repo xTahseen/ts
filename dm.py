@@ -201,12 +201,10 @@ async def media_slot(client: Client, message: Message):
     await _save_sent_message(client, sent_msg)
     await message.delete()
 
-
 modules_help["dm"] = {
     "dm on": "Enable storing outgoing media.",
     "dm off": "Disable storing outgoing media.",
-    "dm": "Delete all stored media globally.",
-    "dm exclude [chat_id]": "Show or toggle chat exclusion (no separate 'remove' command).",
-    "dm unexclude [chat_id]": "Deprecated - use 'dm exclude <chat_id>' to toggle.",
-    "s1, s2, ...": "Reply with media to save, or reuse slot. Use `s1 v` for self-destruct (10s), `s1 v20` for custom seconds.",
+    "dm": "Delete all stored media (skips excluded chats).",
+    "dm exclude": "Show excluded chats, or toggle exclusion using: dm exclude <chat_id>.",
+    "s1, s2, ...": "Save or resend media. Use `s1 v10` for self-destruct (10s).",
 }
