@@ -15,7 +15,10 @@ import pytz
 import requests
 from pyrogram.errors import FloodWait
 
-genai = import_library("google.generativeai", "google-generativeai")
+# New SDK import (keeps your import_library helper)
+genai = import_library("google.genai", "google-genai")
+
+# keep safety_settings variable for compatibility (new SDK doesn't expose client-side setting)
 safety_settings = [{"category": cat, "threshold": "BLOCK_NONE"} for cat in [
     "HARM_CATEGORY_DANGEROUS_CONTENT",
     "HARM_CATEGORY_HARASSMENT",
@@ -24,6 +27,7 @@ safety_settings = [{"category": cat, "threshold": "BLOCK_NONE"} for cat in [
     "HARM_CATEGORY_UNSPECIFIED"
 ]]
 
+# preserve generation_config
 generation_config = {
     "max_output_tokens": 40,
 }
@@ -33,6 +37,19 @@ _gemini_model_cache = None
 
 DEFAULT_HISTORY_HEAD = 50
 DEFAULT_HISTORY_TAIL = 50
+
+history_collection = "custom.gchat"
+settings_collection = "custom.gsettings"
+enabled_users = db.get(settings_collection, "enabled_users") or []
+disabled_users = db.get(settings_collection, "disabled_users") or []
+gchat_for_all = db.get(settings_collection, "gchat_for_all") or False
+smileys = ["-.-", "):", ":)", "*.*", ")*"]
+la_timezone = pytz.timezone("America/Los_Angeles")
+ROLES_URL = "https://gist.githubusercontent.com/iTahseen/00890d65192ca3bd9b2a62eb034b96ab/raw/roles.json"
+BOT_PIC_GROUP_ID = -1001234567890
+
+reply_queue = asyncio.Queue()
+reply_worker_started = False
 
 def get_history_limits():
     head = db.get("custom.gsettings", "history_head")
@@ -51,9 +68,9 @@ def get_history_limits():
 
 def get_chat_history(user_id, user_message, user_name):
     max_head, max_tail = get_history_limits()
-    chat_history = db.get("custom.gchat", f"chat_history.{user_id}") or []
+    chat_history = db.get(history_collection, f"chat_history.{user_id}") or []
     chat_history.append(f"{user_name}: {user_message}")
-    db.set("custom.gchat", f"chat_history.{user_id}", chat_history)
+    db.set(history_collection, f"chat_history.{user_id}", chat_history)
     if len(chat_history) > max_head + max_tail:
         chat_history_for_prompt = chat_history[:max_head] + ["..."] + chat_history[-max_tail:]
     else:
@@ -72,22 +89,6 @@ def set_gemini_model(model_name: str):
     global _gemini_model_cache
     db.set("custom.gsettings", "gemini_model", model_name)
     _gemini_model_cache = model_name
-
-model = genai.GenerativeModel(get_gemini_model(), generation_config=generation_config)
-model.safety_settings = safety_settings
-
-history_collection = "custom.gchat"
-settings_collection = "custom.gsettings"
-enabled_users = db.get(settings_collection, "enabled_users") or []
-disabled_users = db.get(settings_collection, "disabled_users") or []
-gchat_for_all = db.get(settings_collection, "gchat_for_all") or False
-smileys = ["-.-", "):", ":)", "*.*", ")*"]
-la_timezone = pytz.timezone("America/Los_Angeles")
-ROLES_URL = "https://gist.githubusercontent.com/iTahseen/00890d65192ca3bd9b2a62eb034b96ab/raw/roles.json"
-BOT_PIC_GROUP_ID = -1001234567890
-
-reply_queue = asyncio.Queue()
-reply_worker_started = False
 
 async def reply_worker(client):
     while True:
@@ -146,6 +147,8 @@ async def fetch_bot_pics(client, max_photos=200):
     return photos
 
 async def handle_gpic_message(client, chat_id, bot_response):
+    if not isinstance(bot_response, str):
+        return False
     if bot_response.startswith(".gpic"):
         parts = bot_response.split(maxsplit=2)
         n = 1
@@ -196,40 +199,103 @@ def build_prompt(bot_role, chat_history, user_message):
         f"User Message:\n{user_message}"
     )
     return prompt
-    
+
+def get_genai_client_for_key(api_key):
+    return genai.Client(api_key=api_key)
+
+async def _create_chat_via_client(client, model_name):
+    # create a chat object using the new SDK (done in thread to avoid blocking)
+    chat = await asyncio.to_thread(client.chats.create, model=model_name)
+    return chat
+
 async def generate_gemini_response(input_data, chat_history, user_id):
+    """
+    Keep original behavior but use new SDK:
+    - Try to create a chat (mimicking model.start_chat()), send message;
+    - Fallback to stateless client.models.generate_content if chat path fails.
+    - Rotate API keys on 429/invalid/quota errors.
+    """
     retries = 3
     gemini_keys = db.get(settings_collection, "gemini_keys") or [gemini_key]
     current_key_index = db.get(settings_collection, "current_key_index") or 0
+    last_exc = None
+
     while retries > 0:
         try:
             current_key = gemini_keys[current_key_index]
-            genai.configure(api_key=current_key)
-            model = genai.GenerativeModel(get_gemini_model(), generation_config=generation_config)
-            model.safety_settings = safety_settings
-            response = model.generate_content(input_data)
-            bot_response = response.text.strip()
+            client = get_genai_client_for_key(current_key)
+            model_name = get_gemini_model()
+
+            # Try server-side chat (mimic old model.start_chat())
+            try:
+                chat = await _create_chat_via_client(client, model_name)
+                if isinstance(input_data, (list, tuple)):
+                    resp = await asyncio.to_thread(chat.send_message, contents=input_data, config=generation_config)
+                else:
+                    resp = await asyncio.to_thread(chat.send_message, contents=str(input_data), config=generation_config)
+                bot_response = getattr(resp, "text", None) or ""
+                bot_response = bot_response.strip()
+            except Exception:
+                # Fallback to stateless generate_content (same signature)
+                if isinstance(input_data, (list, tuple)):
+                    resp = await asyncio.to_thread(client.models.generate_content, model=model_name, contents=input_data, config=generation_config)
+                else:
+                    resp = await asyncio.to_thread(client.models.generate_content, model=model_name, contents=str(input_data), config=generation_config)
+                bot_response = getattr(resp, "text", None) or ""
+                bot_response = bot_response.strip()
+
+            # store history
             full_history = db.get(history_collection, f"chat_history.{user_id}") or []
             full_history.append(bot_response)
             db.set(history_collection, f"chat_history.{user_id}", full_history)
             return bot_response
+
         except Exception as e:
-            if "429" in str(e) or "invalid" in str(e).lower():
+            last_exc = e
+            msg = str(e).lower()
+            if "429" in msg or "invalid" in msg or "quota" in msg:
                 retries -= 1
                 current_key_index = (current_key_index + 1) % len(gemini_keys)
                 db.set(settings_collection, "current_key_index", current_key_index)
                 await asyncio.sleep(4)
-            else:
-                raise e
+                continue
+            # other errors: re-raise to be handled by caller
+            raise
+    # exhausted retries
+    raise last_exc
 
 async def upload_file_to_gemini(file_path, file_type):
-    uploaded_file = genai.upload_file(file_path)
-    while uploaded_file.state.name == "PROCESSING":
-        await asyncio.sleep(10)
-        uploaded_file = genai.get_file(uploaded_file.name)
-    if uploaded_file.state.name == "FAILED":
-        raise ValueError(f"{file_type.capitalize()} failed to process.")
-    return uploaded_file
+    """
+    Use the new SDK upload signature: client.files.upload(file=...)
+    Poll client.files.get until ACTIVE or FAILED.
+    """
+    gemini_keys = db.get(settings_collection, "gemini_keys") or [gemini_key]
+    current_key_index = db.get(settings_collection, "current_key_index") or 0
+    current_key = gemini_keys[current_key_index]
+    client = get_genai_client_for_key(current_key)
+
+    # upload - use keyword 'file' per SDK docs and run in thread
+    uploaded = await asyncio.to_thread(client.files.upload, file=file_path)
+
+    # poll until ACTIVE/FAILED (avoid blocking)
+    for _ in range(120):
+        state = getattr(uploaded, "state", None)
+        name = getattr(uploaded, "name", None) or getattr(uploaded, "id", None)
+        state_name = ""
+        if state:
+            state_name = getattr(state, "name", "") or ""
+            state_name = str(state_name).upper()
+        if state_name == "ACTIVE":
+            return uploaded
+        if state_name == "FAILED":
+            raise ValueError(f"{file_type.capitalize()} failed to process.")
+        if name:
+            try:
+                uploaded = await asyncio.to_thread(client.files.get, name=name)
+            except Exception:
+                pass
+        await asyncio.sleep(1)
+    raise ValueError(f"{file_type.capitalize()} upload timed out")
 
 async def send_typing_action(client, chat_id, user_message):
     await client.send_chat_action(chat_id=chat_id, action=enums.ChatAction.TYPING)
@@ -238,11 +304,11 @@ async def send_typing_action(client, chat_id, user_message):
 async def handle_voice_message(client, chat_id, bot_response):
     voice_generation_enabled = get_voice_generation_enabled()
     if not voice_generation_enabled:
-        if bot_response.startswith(".el"):
+        if isinstance(bot_response, str) and bot_response.startswith(".el"):
             bot_response = bot_response[3:].strip()
         await send_reply(client.send_message, [chat_id, bot_response], {}, client)
         return True
-    if bot_response.startswith(".el"):
+    if isinstance(bot_response, str) and bot_response.startswith(".el"):
         try:
             audio_path = await generate_elevenlabs_audio(text=bot_response[3:])
             if audio_path and os.path.exists(audio_path):
@@ -318,37 +384,13 @@ async def gchat(client: Client, message: Message):
             chat_history = get_chat_history(user_id, combined_message, user_name)
             await asyncio.sleep(random.choice([3, 5, 7]))
             await send_typing_action(client, message.chat.id, combined_message)
-            gemini_keys = db.get(settings_collection, "gemini_keys") or [gemini_key]
-            current_key_index = db.get(settings_collection, "current_key_index") or 0
-            retries = len(gemini_keys) * 2
-            while retries > 0:
-                try:
-                    current_key = gemini_keys[current_key_index]
-                    genai.configure(api_key=current_key)
-                    model = genai.GenerativeModel(get_gemini_model(), generation_config=generation_config)
-                    model.safety_settings = safety_settings
-                    prompt = build_prompt(bot_role, chat_history, combined_message)
-                    response = model.start_chat().send_message(prompt)
-                    bot_response = response.text.strip()
-                    if await handle_gpic_message(client, message.chat.id, bot_response):
-                        return
-                    full_history = db.get(history_collection, f"chat_history.{user_id}") or []
-                    full_history.append(bot_response)
-                    db.set(history_collection, f"chat_history.{user_id}", full_history)
-                    if await handle_voice_message(client, message.chat.id, bot_response):
-                        return
-                    await send_reply(message.reply_text, [bot_response], {}, client)
-                    return
-                except Exception as e:
-                    if "429" in str(e) or "invalid" in str(e).lower():
-                        retries -= 1
-                        if retries % 2 == 0:
-                            current_key_index = (current_key_index + 1) % len(gemini_keys)
-                            db.set(settings_collection, "current_key_index", current_key_index)
-                        await asyncio.sleep(4)
-                    else:
-                        await send_reply(client.send_message, ["me", f"gchat error:\n\n{str(e)}"], {}, client)
-                        return
+            prompt = build_prompt(bot_role, chat_history, combined_message)
+            bot_response = await generate_gemini_response(prompt, chat_history, user_id)
+            if await handle_gpic_message(client, message.chat.id, bot_response):
+                return
+            if await handle_voice_message(client, message.chat.id, bot_response):
+                return
+            await send_reply(message.reply_text, [bot_response], {}, client)
         client.message_timers[user_id] = asyncio.create_task(process_combined_messages())
     except Exception as e:
         await send_reply(client.send_message, ["me", f"gchat module error:\n\n{str(e)}"], {}, client)
@@ -418,7 +460,10 @@ async def handle_files(client: Client, message: Message):
         await send_reply(client.send_message, ["me", f"handle_files error:\n\n{str(e)}"], {}, client)
     finally:
         if file_path and os.path.exists(file_path):
-            os.remove(file_path)
+            try:
+                os.remove(file_path)
+            except Exception:
+                pass
 
 @Client.on_message(filters.command(["setgchat", "setgc"], prefix) & filters.me)
 async def set_gemini_key(client: Client, message: Message):
@@ -455,9 +500,6 @@ async def set_gemini_key(client: Client, message: Message):
             if 0 <= index < len(gemini_keys):
                 current_key_index = index
                 db.set(settings_collection, "current_key_index", current_key_index)
-                genai.configure(api_key=gemini_keys[current_key_index])
-                model = genai.GenerativeModel(get_gemini_model())
-                model.safety_settings = safety_settings
                 await send_reply(message.edit_text, [f"Current key set to: {key}"], {}, client)
             else:
                 await send_reply(message.edit_text, [f"Invalid key index: {key}"], {}, client)
@@ -652,13 +694,13 @@ async def test_keys(client: Client, message: Message):
 
         for idx, key in enumerate(gemini_keys):
             try:
-                genai.configure(api_key=key)
-                test_model = genai.GenerativeModel(
-                    get_gemini_model(),
-                    generation_config=generation_config
+                client_genai = genai.Client(api_key=key)
+                response = await asyncio.to_thread(
+                    client_genai.models.generate_content,
+                    model=get_gemini_model(),
+                    contents=test_prompt,
+                    config=generation_config
                 )
-                test_model.safety_settings = safety_settings
-                response = test_model.generate_content(test_prompt)
                 text = getattr(response, "text", None) or getattr(response, "result", None)
                 status = "OK" if text else "No response"
             except Exception as e:
