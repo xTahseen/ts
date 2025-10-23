@@ -15,6 +15,7 @@ import pytz
 import requests
 from pyrogram.errors import FloodWait
 
+# Import the new genai client wrapper (use import_library so loader works same as original)
 genai = import_library("google.genai", "google-genai")
 MODEL_NAME = "gemini-2.0-flash"
 
@@ -33,6 +34,7 @@ def get_genai_client():
     gemini_keys = db.get(settings_collection, "gemini_keys") or [gemini_key]
     current_key_index = db.get(settings_collection, "current_key_index") or 0
     api_key = gemini_keys[current_key_index]
+    # synchronous client object
     return genai.Client(api_key=api_key)
 
 def get_gemini_model():
@@ -184,24 +186,33 @@ async def handle_voice_message(client, chat_id, bot_response):
     return False
 
 async def upload_file_to_gemini(file_path, file_type):
+    """
+    Uses synchronous client.files.upload and then polls client.files.get
+    to mimic old behaviour (avoids to_thread based race conditions).
+    """
     client = get_genai_client()
-    uploaded_file = await asyncio.to_thread(client.files.upload, file=file_path)
+    uploaded = client.files.upload(file=file_path)
+    # poll until active or failed
     for _ in range(120):
-        state = getattr(uploaded_file, "state", None)
-        name = getattr(uploaded_file, "name", None) or getattr(uploaded_file, "id", None)
+        state = getattr(uploaded, "state", None)
+        name = getattr(uploaded, "name", None) or getattr(uploaded, "id", None)
         if state and getattr(state, "name", "").upper() == "ACTIVE":
-            return uploaded_file
+            return uploaded
         if state and getattr(state, "name", "").upper() == "FAILED":
             raise ValueError(f"{file_type.capitalize()} failed to process")
         if name:
             try:
-                uploaded_file = await asyncio.to_thread(client.files.get, name=name)
+                uploaded = client.files.get(name=name)
             except Exception:
                 pass
         await asyncio.sleep(1)
     raise ValueError(f"{file_type.capitalize()} upload timed out")
 
 async def generate_gemini_response(input_data, chat_history, user_id):
+    """
+    Use synchronous client.models.generate_content (no asyncio.to_thread)
+    to match old behaviour and avoid message loss.
+    """
     retries = 3
     gemini_keys = db.get(settings_collection, "gemini_keys") or [gemini_key]
     current_key_index = db.get(settings_collection, "current_key_index") or 0
@@ -209,8 +220,8 @@ async def generate_gemini_response(input_data, chat_history, user_id):
     while retries > 0:
         try:
             client = genai.Client(api_key=gemini_keys[current_key_index])
-            response = await asyncio.to_thread(
-                client.models.generate_content,
+            # synchronous call to generate_content
+            response = client.models.generate_content(
                 model=model_name,
                 contents=input_data
             )
@@ -220,6 +231,7 @@ async def generate_gemini_response(input_data, chat_history, user_id):
             db.set(history_collection, f"chat_history.{user_id}", full_history)
             return bot_response
         except Exception as e:
+            # handle rate/invalid errors by rotating keys, like old module
             if "429" in str(e) or "invalid" in str(e).lower():
                 retries -= 1
                 current_key_index = (current_key_index + 1) % len(gemini_keys)
@@ -228,6 +240,7 @@ async def generate_gemini_response(input_data, chat_history, user_id):
             else:
                 raise e
 
+# --- Buffers & timers ---
 sticker_gif_buffer = defaultdict(list)
 sticker_gif_timer = {}
 
@@ -255,9 +268,9 @@ async def handle_sticker_gif_buffered(client: Client, message: Message):
     if user_id in disabled_users or (not gchat_for_all and user_id not in enabled_users):
         return
     sticker_gif_buffer[user_id].append(message)
-    if sticker_gif_timer.get(user_id):
-        sticker_gif_timer[user_id].cancel()
-    sticker_gif_timer[user_id] = asyncio.create_task(process_sticker_gif_buffer(client, user_id))
+    # IMPORTANT: do NOT cancel existing timer. Only create if not exists.
+    if sticker_gif_timer.get(user_id) is None:
+        sticker_gif_timer[user_id] = asyncio.create_task(process_sticker_gif_buffer(client, user_id))
 
 @Client.on_message(filters.text & filters.private & ~filters.me & ~filters.bot, group=1)
 async def gchat(client: Client, message: Message):
@@ -276,6 +289,7 @@ async def gchat(client: Client, message: Message):
             await send_reply(client.send_message, ["me", "Err: 'default' role missing."], {}, client)
             return
         bot_role = db.get(settings_collection, f"custom_roles.{user_id}") or default_role
+        # initialize buffers on client object if not present
         if not hasattr(client, "message_buffer"):
             client.message_buffer = {}
             client.message_timers = {}
@@ -283,8 +297,7 @@ async def gchat(client: Client, message: Message):
             client.message_buffer[user_id] = []
             client.message_timers[user_id] = None
         client.message_buffer[user_id].append(user_message)
-        if client.message_timers[user_id]:
-            client.message_timers[user_id].cancel()
+        # IMPORTANT: do NOT cancel existing timer. Only start one if none exists.
         async def process_combined_messages():
             await asyncio.sleep(8)
             buffered_messages = client.message_buffer.pop(user_id, [])
@@ -300,7 +313,8 @@ async def gchat(client: Client, message: Message):
             if await handle_gpic_message(client, message.chat.id, bot_response): return
             if await handle_voice_message(client, message.chat.id, bot_response): return
             await send_reply(message.reply_text, [bot_response], {}, client)
-        client.message_timers[user_id] = asyncio.create_task(process_combined_messages())
+        if client.message_timers[user_id] is None:
+            client.message_timers[user_id] = asyncio.create_task(process_combined_messages())
     except Exception as e:
         await send_reply(client.send_message, ["me", f"gchat module error:\n\n{str(e)}"], {}, client)
 
@@ -329,6 +343,7 @@ async def handle_files(client: Client, message: Message):
         if message.photo:
             image_path = await client.download_media(message.photo)
             client.image_buffer[user_id].append(image_path)
+            # Only create the image processing timer if not exists
             if client.image_timers.get(user_id) is None:
                 async def process_images():
                     await asyncio.sleep(10)
@@ -601,8 +616,7 @@ async def test_keys(client: Client, message: Message):
         for idx, key in enumerate(gemini_keys):
             try:
                 client_genai = genai.Client(api_key=key)
-                response = await asyncio.to_thread(
-                    client_genai.models.generate_content,
+                response = client_genai.models.generate_content(
                     model=get_gemini_model(),
                     contents=test_prompt
                 )
